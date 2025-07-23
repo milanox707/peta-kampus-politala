@@ -1,3 +1,4 @@
+require('dotenv').config();
 const fetch = require('node-fetch');
 const express = require('express');
 const fs = require('fs');
@@ -6,7 +7,6 @@ const multer = require('multer');
 
 
 const app = express();
-const PORT = 3000;
 
 // Middleware
 app.use(express.static(path.join(__dirname, 'public')));
@@ -144,7 +144,7 @@ app.post('/api/delete-building', (req, res) => {
 let cachedWeather = null;
 let lastFetched = 0;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
-const apiKey = process.env.OPENWEATHER_API_KEY;
+const WEATHER_API_KEY = 'ff7dc8c10056b71c93e3748c51481152';
 //const LAT = -3.8079;
 //const LON = 114.7921;//Lokasi
 
@@ -179,6 +179,6 @@ app.get('/api/weather', async (req, res) => {
     res.json(cachedWeather);
 });
 // ======== START SERVER ========
-app.listen(PORT, () => {
-    console.log(`✅ Server running at http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+
