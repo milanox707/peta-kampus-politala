@@ -1,0 +1,25 @@
+# Node modules - never commit dependencies
+node_modules/
+
+# Environment variables - keep secrets safe
+.env
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Operating system files (macOS, Windows)
+.DS_Store
+Thumbs.db
+
+# IDE/editor settings (optional)
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Render build cache (if any)
+render.yaml
