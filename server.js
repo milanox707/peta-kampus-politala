@@ -144,7 +144,7 @@ app.post('/api/delete-building', (req, res) => {
 let cachedWeather = null;
 let lastFetched = 0;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
-const WEATHER_API_KEY = 'ff7dc8c10056b71c93e3748c51481152';
+const apiKey = process.env.OPENWEATHER_API_KEY;
 //const LAT = -3.8079;
 //const LON = 114.7921;//Lokasi
 
