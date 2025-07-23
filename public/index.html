@@ -1,0 +1,2052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Campus Map</title>
+    <link rel="icon" href="/favicon.ico" />
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        #map {
+            height: 600px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            background-color: transparent !important;
+        }
+
+        #overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10;
+        }
+
+        .header{
+            background-color: antiquewhite;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .footer{
+            background-color: antiquewhite;
+            padding: 5px;
+            text-align: center;
+            font-size: 15px;
+        }
+
+        .popup-menu {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            z-index: 100;
+            border-radius: 10px;
+            border: 10px ridge black;
+        }
+        
+        .menu-content {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .image-container {
+            flex: 1 1 300px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .image-container img {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .button-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+
+        .building-image, .floor-image, .room-image {
+            max-width: 100%;
+            max-height: 200px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            border: 5px double gray;
+        }
+
+        .button {
+            padding: 10px 15px;
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            border-radius: 8px;
+            border: 2px solid black;
+            font-weight: bold;
+            cursor: pointer;
+            flex: 0 1 auto;
+            max-width: 180px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            overflow: hidden;
+            text-align: center;
+            transition: all 0.2s ease-in-out;
+        }
+        
+        .button:hover { 
+            background: linear-gradient(135deg, #0056b3, #003f80);
+            transform: scale(1.1);
+        }
+        
+        .close-button {
+            background: red;
+            border: 2px solid darkred;
+        }
+        
+        .close-button:hover {
+            background: darkred;
+            transform: scale(1.1);
+        }
+
+        .floor-list {
+            display: grid;
+            grid-row-end: span 3;
+            grid-template-columns: repeat(3, 1fr); /* 3 columns per row */
+            gap: 10px;
+          }
+          
+        .room-list {
+            display: grid;
+            grid-row-end: span 3;
+            grid-template-columns: repeat(3, 1fr); /* 3 columns per row */
+            gap: 10px;
+          }
+
+          body {
+            font-family: sans-serif;
+            font-size: 24px;
+            text-align: center;
+
+        }
+
+           .compact-header {
+            background-color: antiquewhite;
+            padding: 5px 10px;
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        .compact-header h2 {
+            margin: 5px 0;
+            font-size: 18px;
+        }
+
+        .compact-header p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+
+        #admin-login input { 
+            margin: 10px; 
+        }
+
+        #floating-admin-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: 2px solid black;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 1000;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        #floating-admin-button:hover {
+            background-color: #0056b3;
+            transform: scale(1.1);
+        }
+
+        #floating-header {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: antiquewhite;
+            padding: 10px 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            font-size: clamp(12px, 4vw, 16px);
+            text-align: left;
+            border: 2px solid #ccc;
+            max-width: 90vw;
+            opacity: 0.5;
+        }
+
+        #floating-header h2 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+        }
+
+        #floating-header p {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .wifi-bars {
+            display: flex;
+            gap: 2px;
+            margin-top: 10px;
+            align-items: flex-end;
+            height: 20px;
+        }
+
+        .wifi-bar {
+            width: 6px;
+            background-color: lightgray;
+            border-radius: 2px;
+        }
+
+        .bar-1 { height: 4px; }
+        .bar-2 { height: 8px; }
+        .bar-3 { height: 12px; }
+        .bar-4 { height: 16px; }
+        .bar-5 { height: 20px; }
+
+        .wifi-strong { background-color: #4CAF50; }   /* Green */
+        .wifi-medium { background-color: #FFC107; }  /* Yellow */
+        .wifi-weak { background-color: #F44336; }    /* Red */  
+
+        .wifi-indicator {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 28px;
+            cursor: pointer;
+            user-select: none;
+            z-index: 30;
+        }
+
+        .wifi-tabs {
+            position: absolute;
+            top: 60px;
+            right: 20px;
+            background: white;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            width: 240px;
+            padding: 10px;
+            z-index: 25;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .wifi-tabs.hidden {
+            display: none;
+        }
+
+/* Position the gear */
+#drawer-toggle-wrapper {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 50%; /* Ensures perfect circle */
+  width: 48px;
+  height: 48px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+#drawer-toggle {
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  transition: transform 0.6s ease-in-out;
+}
+
+/* Links appear to the left of the gear */
+.drawer-links {
+  position: fixed;
+  top: 20px;
+  right: 70px;
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateX(100%);
+  opacity: 0;
+  z-index: 999;
+  overflow-x: auto
+}
+.drawer-links.open {
+  transform: translateX(0%);
+  opacity: 1;
+}
+
+/* Accessibility buttons below the gear */
+.drawer-accessibility {
+  position: fixed;
+  top: 70px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateY(-10px);
+  opacity: 0;
+  z-index: 999;
+}
+.drawer-accessibility.open {
+  transform: translateY(0px);
+  opacity: 1;
+}
+
+/* Button styling */
+.button {
+  background-color: #007bff;
+  color: white;
+  border-radius: 6px;
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: clamp(12px, 4vw, 16px);
+  padding: 1.2vw 2.4vw;
+}
+
+
+    #drawer-toggle-wrapper:hover {
+        background-color: #f0f0f0;
+        transform: rotate(15deg) scale(1.05);
+    }
+
+    #drawer-toggle {
+        width: 6vw;
+        height: 6vw;
+        max-width: 32px;
+        max-height: 32px;
+        min-width: 20px;
+        min-height: 20px;
+    }
+
+/* Panel styles */
+#drawer-panel {
+  margin-top: 8px;
+  background: white;
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: max-height 0.3s ease, opacity 0.3s ease;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  align-items: flex-start;
+}
+
+#drawer-panel.open {
+  max-height: 600px;
+  opacity: 1;
+}
+
+#drawer-panel.closed {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(100%);
+}
+
+
+.drawer-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.drawer-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Buttons inside */
+#drawer-panel .button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: clamp(12px, 2vw, 16px);
+    padding: 6px 10px;
+    background: linear-gradient(135deg, #007bff, #0056b3);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s ease;
+    text-decoration: none;
+}
+
+#drawer-panel .button:hover {
+    background: linear-gradient(135deg, #0056b3, #003f80);
+}
+
+        #drawer-panel .icon {
+            width: 4.5vw;
+            height: 4.5vw;
+            max-width: 24px;
+            max-height: 24px;
+            min-width: 16px;
+            min-height: 16px;
+        }
+
+
+        #drawer-toggle {
+        width: 24px;
+        height: 24px;
+        pointer-events: none; /* ensures the wrapper gets the click */
+        }
+
+/* Accessibility Panel Styles */
+#accessibility-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+#accessibility-toggle {
+    font-size: 26px;
+    background: #fff;
+    border: 2px solid #333;
+    border-radius: 50%;
+    padding: 8px 10px;
+    cursor: pointer;
+    box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
+}
+
+#accessibility-menu {
+    margin-top: 10px;
+    background: white;
+    border: 2px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+#accessibility-menu button {
+    display: block;
+    width: 160px;
+    padding: 8px;
+    border: none;
+    background: #f0f0f0;
+    cursor: pointer;
+    text-align: left;
+    font-size: 14px;
+    border-bottom: 1px solid #ccc;
+}
+
+#accessibility-menu button:hover {
+    background: #ddd;
+}
+
+#accessibility-menu.hidden {
+    display: none;
+}
+
+body.high-contrast {
+    filter: invert(1) hue-rotate(180deg);
+    background: black !important;
+}
+
+
+.icon {
+    width: 20px;
+    height: 20px;
+}
+
+.link-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.accessibility-column {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+
+#drawer-panel.open {
+    max-height: 1000px;
+    opacity: 1;
+}
+
+    @media (max-width: 600px) {
+    body {
+        font-size: 14px;
+    }
+
+    .header, .footer, #floating-header {
+        font-size: 12px;
+        padding: 5px;
+    }
+
+    .button {
+        font-size: clamp(10px, 3.5vw, 14px);
+        padding: 6px 10px;
+        width: 90%;   /* fits better on narrow screen */
+        max-width: none;
+    }
+
+    .popup-menu {
+        width: 95vw;
+        height: auto;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .menu-content, .button-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    #drawer-links, #drawer-accessibility {
+        flex-direction: column;
+        right: 10px;
+        top: 70px;
+    }
+
+    #drawer-toggle-wrapper {
+        width: 32px;
+        height: 32px;
+    }
+
+    #drawer-toggle {
+        width: 20px;
+        height: 20px;
+    }
+
+  #background-layer {
+    background-size: contain;
+    background-position: center top;
+    background-repeat: no-repeat;
+  }
+        }
+
+#background-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  background: url("images/overview politeknik.png") center center no-repeat;
+  background-size: cover;  /* or try `contain` if too zoomed in */
+  object-fit: cover;
+  filter: brightness(0.7);
+  overflow: hidden;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* optional: disables page scrolling if you don’t need it */
+}
+
+#map {
+  height: 100vh;
+  width: 100vw;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+#drawer-toggle.spinning {
+  animation: spin 0.6s linear;
+}
+
+/* Hide by default */
+.desktop-only {
+  display: block;
+}
+
+/* Show only on devices wider than 768px (typical tablet/desktop) */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+
+#weather-widget h3 {
+  font-size: 0.9em;
+  margin: 0 0 4px 0;
+}
+
+#weather-widget img {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  background: rgb(255, 255, 255);
+  border: #0056b3;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+#weather-content p {
+  margin: 2px 0;
+  line-height: 1.2;
+}
+
+#weather-content img#cuaca-icon {
+  background-color: rgb(204, 229, 255);
+  padding: 6px;
+  border-radius: 6px;
+  box-shadow: 0 0 3px rgba(0, 0, 0, 0.3);
+  margin: 6px 0;
+  width: 60px;
+  height: 60px;
+}
+
+
+#weather-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+
+
+
+@media (max-width: 768px) {
+  #weather-widget {
+    display: none;
+  }
+}
+
+
+
+
+#weather-widget, #main-content, .buttons, canvas, etc {
+  z-index: 10; /* ensure above ambience */
+  position: relative;
+}
+
+
+/* UI Layer wraps widget + ambience */
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* UI elements inside can override this */
+  z-index: 1000; /* High enough to float above Leaflet */
+}
+
+/* Weather Widget styling */
+#weather-widget {
+  position: absolute;
+  left: 20px;
+  top: auto;
+  bottom: 20px;
+  max-width: 220px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 10px 15px;
+  border-radius: 8px;
+  font-family: sans-serif;
+  font-size: 14px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  pointer-events: auto;
+  height: auto;           /* ✅ Prevent vertical stretch */
+  display: inline-block;  /* ✅ Fit to content */
+}
+
+
+/* Weather icon clarity */
+#cuaca-icon {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+/* Ambience container for cloud animation */
+#weather-ambience {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: -1; /* behind the widget, still in UI layer */
+  pointer-events: none;
+}
+
+/* Cloud style */
+.weather-cloud {
+  position: absolute;
+  background: rgba(255,255,255,0.6);
+  border-radius: 50%;
+  opacity: 0.6;
+  filter: blur(20px);
+}
+
+    </style>
+</head>
+<div id="background-layer"></div>
+<div id="floating-header">
+    <h2>Peta Kampus</h2>
+    <p id="time-and-date">Loading...</p>
+</div>
+
+    <div id="map"></div>
+    <div id="overlay" onclick="closeMenu()"></div>
+    <!-- Admin Login Prompt -->
+<div id="admin-login" class="popup-menu" style="display: none;">
+    <h3>Enter Admin Password</h3>
+    <input type="password" id="admin-password" placeholder="Password">
+    <br>
+    <button class="button" onclick="adminLogin()">Login</button>
+    <button class="button close-button" onclick="closeAdminLogin()">Cancel</button>
+</div>
+
+<!-- Weather Widget -->
+<div id="ui-layer">
+  <!-- Weather Widget -->
+  <div id="weather-widget" class="desktop-only">
+    <h3>🌤️ Cuaca Kampus</h3>
+    <div id="weather-content">
+      <p id="cuaca-desc">Memuat...</p>
+      <img id="cuaca-icon" alt="Icon Cuaca" />
+      <p><span id="cuaca-temp">--</span></p>
+    </div>
+  </div>
+
+  <!-- Weather Ambience -->
+  <div id="weather-ambience"></div>
+</div>
+
+
+<!-- Admin Tools -->
+<div id="admin-tools" class="popup-menu" style="width: 400px; display: none;">
+    <h3>Admin Tools</h3>
+    <button class="button" onclick="addBuilding()">+ Add Building</button>
+    <button class="button" onclick="startRepositioning()">♻ Reposition Building</button>
+    <button class="button" onclick="startRemovingBuilding()">🗑 Remove Building</button>
+    <button class="button" onclick="editCurrentBuilding()">✎ Edit Current</button>
+    <button class="button" style="background-color: darkred;" onclick="logoutAdmin()">Log Out</button>
+    <button class="button close-button" onclick="closeAdminTools()">Close</button>
+</div>
+
+    <div id="menu" class="popup-menu">
+        <h3 id="building-title">Building Name</h3>
+        <div class="menu-content">
+            <div class="image-container">
+                <img id="building-image" class="building-image" src="" alt="Building Image">
+            </div>
+            <div id="floor-list" class="button-container"></div>
+        </div>
+        <button class="button close-button" onclick="closeMenu()">Close</button>
+    </div>
+    <div id="floor-plan" class="popup-menu">
+        <h3 id="floor-title">Floor Plan</h3>
+        <div class="menu-content">
+            <div class="image-container">
+                <img id="floor-image" class="floor-image" src="" alt="Floor Plan">
+            </div>
+            <div id="room-list" class="button-container"></div>
+        </div>
+        <button class="button" onclick="showBuildingMenu()">Back</button>
+        <button class="button close-button" onclick="closeMenu()">Close</button>
+    </div>
+    <div id="room-plan" class="popup-menu">
+        <h3 id="room-title">Room Details</h3>
+        <div class="menu-content">
+            <div class="image-container" style="flex: 2;">
+                <img id="room-image" class="room-image" src="images/Place_holder.png" alt="Room Image">
+            </div>
+        </div>
+        <!-- Signal Icon Button -->
+        <div id="wifi-indicator" class="wifi-indicator" onclick="toggleWifiList()">📶</div>
+
+        <div id="wifi-ssid-list" class="wifi-tabs hidden">
+        <h4>Wi-Fi Networks</h4>
+        <ul id="wifi-list" style="padding-left: 0; list-style: none; max-height: 200px; overflow-y: auto; font-size: 14px; line-height: 1.5;"></ul>
+        </div>
+
+        <!-- Tabbed Detail Panel -->
+        <div id="wifi-tabs" class="wifi-tabs hidden">
+            <div class="tab-header">
+                <button class="tab-button active" onclick="showTab('wifi')">Wi-Fi</button>
+                <button class="tab-button" onclick="showTab('noise')">Noise</button>
+                <button class="tab-button" onclick="showTab('power')">Power</button>
+            </div>
+            <div class="tab-content" id="wifi-tab">Loading Wi-Fi data...</div>
+            <div class="tab-content hidden" id="noise-tab">Noise level: coming soon</div>
+            <div class="tab-content hidden" id="power-tab">Power outlet info: coming soon</div>
+        </div>
+
+        <button class="button" onclick="showFloorPlan(currentfloor)">Back</button>
+        <button class="button close-button" onclick="closeMenu()">Close</button>
+    </div>
+<div id="building-upload-modal" class="popup-menu" style="display: none; width: 350px;">
+    <h3>Add New Building</h3>
+    <input type="text" id="new-building-name" placeholder="Building Name" style="width: 100%; margin-bottom: 10px; padding: 6px;" />
+    <input type="file" id="new-building-image" accept="image/*" style="margin-bottom: 10px;" />
+    <div>
+        <button class="button" onclick="confirmNewBuilding()">Add</button>
+        <button class="button" onclick="skipBuildingImage()">Later</button>
+        <button class="button close-button" onclick="cancelBuilding()">Cancel</button>
+    </div>
+
+    </div> <!-- end of #building-upload-modal -->
+
+<!-- move them here -->
+<div id="add-floor-modal" class="popup-menu" style="display: none; width: 350px;">
+    <h3>Add New Floor</h3>
+    <input type="text" id="new-floor-name" placeholder="Floor Name" style="width: 100%; margin-bottom: 10px;" />
+    <input type="file" id="new-floor-image" accept="image/*" style="margin-bottom: 10px;" />
+    <div>
+        <button class="button" onclick="confirmNewFloor()">Add</button>
+        <button class="button" onclick="skipFloorImage()">Later</button>
+        <button class="button close-button" onclick="closeMenu()">Cancel</button>
+    </div>
+</div>
+
+<div id="add-room-modal" class="popup-menu" style="display: none; width: 350px;">
+    <h3>Add New Room</h3>
+    <input type="text" id="new-room-name" placeholder="Room Name" style="width: 100%; margin-bottom: 10px;" />
+    <input type="file" id="new-room-image" accept="image/*" style="margin-bottom: 10px;" />
+    <div>
+        <button class="button" onclick="confirmNewRoom()">Add</button>
+        <button class="button" onclick="skipRoomImage()">Later</button>
+        <button class="button close-button" onclick="closeMenu()">Cancel</button>
+    </div>
+</div>
+<div id="edit-room-modal" class="popup-menu" style="display: none; width: 350px;">
+    <h3>Edit Room</h3>
+    <p><strong id="edit-room-title">Room:</strong></p>
+    <label for="edit-room-wifi">Wi-Fi SSIDs (comma-separated):</label>
+    <input type="text" id="edit-room-wifi" />
+    <div>
+        <button class="button" onclick="saveRoomWifi()">Save</button>
+        <button class="button close-button" onclick="closeMenu()">Cancel</button>
+    </div>
+</div>
+
+<button id="floating-admin-button" onclick="showAdminTools()" style="display: none;">
+    🛠️ Admin Tools
+</button>
+
+
+</div>
+<!-- Gear Icon Button -->
+<div id="drawer-toggle-wrapper" onclick="toggleDrawer()">
+  <img src="images/gear-icon.png" alt="Toggle Menu" id="drawer-toggle" />
+</div>
+
+<!-- Links Row: appears to the left of gear -->
+<div id="drawer-links" class="drawer-links closed">
+    <a class="button" href="https://politala.ac.id" target="_blank">
+    <img src="images/icon-Politala.png" alt="Sipadu" class="icon" />
+    Website</a>
+    <a class="button" href="https://sinema.politala.ac.id" target="_blank">
+    <img src="images/icon-Politala.png" alt="Sipadu" class="icon" />
+    Pendaftaran</a>
+    <a class="button" href="https://sipadu.politala.ac.id/gate/login" target="_blank">
+    <img src="images/icon-Politala.png" alt="Sipadu" class="icon" />
+    Sipadu
+</a>
+</div>
+
+<!-- Accessibility Column: appears below gear -->
+<div id="drawer-accessibility" class="drawer-accessibility closed">
+  <button class="button" onclick="toggleHighContrast()">🔲 kontras</button>
+
+</div>
+
+
+
+</div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+            // List of building script files
+
+let map;
+const buildings = [];
+let repositioning = false;
+let selectedBuilding = null;
+let removing = false;
+let editingRoom = null;
+let currentRoom = null;
+let currentFloor = null;
+
+
+window.registerBuilding = function (building) {
+    buildings.push(building);
+};
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error(`Failed to load script: ${src}`));
+        document.head.appendChild(script);
+    });
+}
+// Load building scripts from server
+fetch('/api/building-scripts')
+    .then(res => res.json())
+    .then(scriptUrls => {
+        console.log("Loaded building scripts:", scriptUrls);
+        return Promise.all(scriptUrls.map(loadScript));
+    })
+    .then(() => {
+        console.log("All building scripts loaded. Initializing map...");
+        initializeMap();
+    })
+    .catch(error => {
+        console.error("Failed to load building scripts:", error);
+    });
+
+function toggleWifiList() {
+    const panel = document.getElementById("wifi-ssid-list");
+    panel.classList.toggle("hidden");
+}
+
+function initializeMap() {
+    map = L.map('map', {
+        crs: L.CRS.Simple,
+        minZoom: -2,
+        maxZoom: 1
+    });
+
+    const imageBounds = [[0, 0], [600, 1000]];
+    const imageUrl = 'images/Peta_kampus.png';
+
+    L.imageOverlay(imageUrl, imageBounds).addTo(map);
+    map.fitBounds(imageBounds);
+
+    buildings.forEach(building => {
+        const correctedY = 600 - building.y;
+        L.marker([correctedY, building.x])
+            .addTo(map)
+            .bindPopup(`<b>${building.name}</b>`)
+            .bindTooltip(building.name, { permanent: false, direction: "top" })
+            .on('click', () => {
+                if (repositioning) {
+                    handleRepositionMarkerClick(building);
+                } else if (removing) {
+                    handleRemoveMarkerClick(building);
+                } else {
+                    openBuildingMenu(building);
+                }
+            });
+
+    });
+
+}
+
+
+
+    // Load all building scripts and initialize the map
+
+
+function initMap() {
+    const map = L.map('map', {
+        crs: L.CRS.Simple,
+        minZoom: -2,
+        maxZoom: 1
+    });
+
+    const imageBounds = [[0, 0], [600, 1000]];
+    const imageUrl = 'images/Peta_kampus.png';
+    L.imageOverlay(imageUrl, imageBounds).addTo(map);
+    map.fitBounds(imageBounds);
+
+    buildings.forEach(building => {
+        const correctedY = 600 - building.y;
+        L.marker([correctedY, building.x])
+            .addTo(map)
+            .bindPopup(`<b>${building.name}</b>`)
+            .bindTooltip(building.name, { permanent: false, direction: "top" })
+            .on('click', () => {
+                if (repositioning) {
+                    handleRepositionMarkerClick(building);
+                } else if (removing) {
+                    handleRemoveMarkerClick(building);
+                } else {
+                    openBuildingMenu(building);
+                }
+            });
+
+
+    });
+}
+
+window.addEventListener("DOMContentLoaded", () => {
+    if (sessionStorage.getItem("isAdmin") === "true") {
+        isAdmin = true;
+        const btn = document.getElementById('floating-admin-button');
+        if (btn) btn.style.display = 'block';
+    }
+});
+
+function showPopup(id) {
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById(id).style.display = 'block';
+}
+
+function openBuildingMenu(building) {
+    currentBuilding = building;
+    document.getElementById('building-title').innerText = building.name;
+    document.getElementById('building-image').src = building.image;
+    document.getElementById('floor-list').innerHTML = "";
+
+// Add floor buttons
+building.floors.forEach(floor => {
+    const button = document.createElement("button");
+    button.className = "button";
+    button.innerText = floor.name;
+    button.onclick = function () {
+        showFloorPlan(building, floor);
+    };
+    document.getElementById('floor-list').appendChild(button);
+});
+
+// Add "Add Floor" button
+
+if (isAdmin) {
+    const addButton = document.createElement("button");
+    addButton.className = "button";
+    addButton.style.background = "green";
+    addButton.innerText = "+ Add Floor";
+    addButton.onclick = function () {
+        openAddFloorModal(building);
+    };
+    document.getElementById('floor-list').appendChild(addButton);
+
+    // 🧠 Fix: Check for existing before creating the new one
+    const imageContainer = document.querySelector("#menu .image-container");
+    const existingEditBtn = document.getElementById("edit-building-image-button");
+    if (existingEditBtn) existingEditBtn.remove();
+
+    const editImageButton = document.createElement("button");
+    editImageButton.id = "edit-building-image-button"; // ✅ ID must be set here
+    editImageButton.className = "button";
+    editImageButton.textContent = "🖼 Edit Image";
+    editImageButton.style.marginTop = "10px";
+    editImageButton.onclick = () => editImage(building, "building");
+
+    imageContainer.appendChild(editImageButton);
+}
+
+
+function toggleWifiList() {
+    const panel = document.getElementById("wifi-ssid-list");
+    const isHidden = panel.classList.contains("hidden");
+    panel.classList.toggle("hidden", !isHidden);
+}
+
+    showPopup('menu');
+
+
+        }
+function showFloorPlan(building, floor) {
+document.getElementById('floor-title').innerText = `${building.Name} - ${floor.name}`;
+document.getElementById('floor-image').src = floor.image;
+document.getElementById('room-list').innerHTML = "";
+
+// Render rooms
+floor.rooms.forEach(room => {
+    const button = document.createElement("button");
+    button.className = "button";
+    button.innerText = room.name;
+    button.onclick = function () {
+        showRoomDetails(room);
+    };
+    document.getElementById('room-list').appendChild(button);
+});
+
+// Add Room button
+if (isAdmin) {
+    const roomList = document.getElementById('room-list');
+
+    // ✅ Remove existing Add Room button if already there
+    const existingAddRoom = document.getElementById("add-room-button");
+    if (existingAddRoom) existingAddRoom.remove();
+
+    // ✅ Create new Add Room button
+    const addRoomButton = document.createElement("button");
+    addRoomButton.id = "add-room-button"; // give it an ID to track
+    addRoomButton.className = "button";
+    addRoomButton.style.background = "green";
+    addRoomButton.innerText = "+ Add Room";
+    addRoomButton.onclick = function () {
+        openAddRoomModal(floor);
+    };
+    roomList.appendChild(addRoomButton);
+
+    // ✅ Handle Edit Image button (your current logic is already good here)
+    const imageContainer = document.querySelector("#floor-plan .image-container");
+    const existingEditBtn = document.getElementById("edit-floor-image-button");
+    if (existingEditBtn) existingEditBtn.remove();
+
+    const editImageButton = document.createElement("button");
+    editImageButton.className = "button";
+    editImageButton.id = "edit-floor-image-button";
+    editImageButton.textContent = "🖼 Edit Image";
+    editImageButton.style.marginTop = "10px";
+    editImageButton.onclick = () => editImage(floor, "floor");
+    imageContainer.appendChild(editImageButton);
+}
+
+
+            showPopup('floor-plan');
+        }
+        
+
+
+function logoutAdmin() {
+    isAdmin = false;
+    sessionStorage.removeItem("isAdmin");
+    document.getElementById('floating-admin-button').style.display = 'none';
+    closeAdminTools();
+}
+
+
+function showRoomDetails(room) {
+    // Set current room and floor
+    currentRoom = room;
+    currentFloor = null;
+    for (let floor of currentBuilding.floors) {
+        if (floor.rooms.includes(room)) {
+            currentFloor = floor;
+            break;
+        }
+    }
+
+    // Show room name and image
+    document.getElementById('room-title').innerText = room.name;
+    document.getElementById('room-image').src = room.image || "images/Place_holder.png";
+
+    // Hide Wi-Fi SSID panel at first
+    document.getElementById('wifi-ssid-list').classList.add('hidden');
+
+    // Populate SSID list (just names)
+    const wifiList = document.getElementById("wifi-list");
+    const wifis = (room.wifi || []).map(ssid => ({ ssid }));
+    if (wifis.length > 0) {
+        wifiList.innerHTML = wifis.map(w => `<li>📶 ${w.ssid}</li>`).join("");
+    } else {
+        wifiList.innerHTML = "<li>No Wi-Fi networks found.</li>";
+    }
+
+    // Hide other menus, show room popup
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('floor-plan').style.display = 'none';
+    document.getElementById('room-plan').style.display = 'block';
+
+    // Remove any previous admin edit button
+    const existingEdit = document.getElementById("edit-room-button");
+    if (existingEdit) existingEdit.remove();
+
+    // Admin-only: Add "Edit Room" button
+if (isAdmin) {
+    // Container to hold both admin buttons
+    let adminRow = document.getElementById("admin-room-buttons");
+    if (!adminRow) {
+        adminRow = document.createElement("div");
+        adminRow.id = "admin-room-buttons";
+        adminRow.style.textAlign = "center";
+        adminRow.style.marginTop = "10px";
+        document.getElementById("room-plan").appendChild(adminRow);
+    }
+    adminRow.innerHTML = "";
+
+    // Edit Room button
+    const editButton = document.createElement("button");
+    editButton.className = "button";
+    editButton.id = "edit-room-button";
+    editButton.textContent = "✎ Edit Room";
+    editButton.style.margin = "5px";
+    editButton.onclick = () => openEditRoomModal(room);
+    adminRow.appendChild(editButton);
+
+    // Delete Room button
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "button close-button";
+    deleteButton.id = "delete-room-button";
+    deleteButton.textContent = "🗑 Delete Room";
+    deleteButton.style.margin = "5px";
+    deleteButton.onclick = () => deleteRoom(room);
+    adminRow.appendChild(deleteButton);
+}
+
+}
+        
+        function showBuildingMenu() { showPopup('menu'); }
+        function closeMenu() {
+            document.getElementById('overlay').style.display = 'none';
+            document.querySelectorAll('.popup-menu').forEach(menu => menu.style.display = 'none');
+        }
+
+function showPopup(menuId) {
+    document.getElementById('overlay').style.display = 'block';
+    document.querySelectorAll('.popup-menu').forEach(menu => menu.style.display = 'none');
+    document.getElementById(menuId).style.display = 'block';
+
+        }
+        function updateTimeAndDate() {
+            const now = new Date();
+            const options = {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false // Change to true if you want AM/PM
+            };
+            const formatted = now.toLocaleString('id-ID', options);
+            document.getElementById("time-and-date").textContent = formatted;
+        }
+
+        // Initial call
+        updateTimeAndDate();
+
+        // Update every second
+        setInterval(updateTimeAndDate, 1000);
+let isAdmin = false;
+let currentBuilding = null;
+
+// Show admin login prompt (triggered manually or with shortcut)
+function promptAdminLogin() {
+    document.getElementById('overlay').style.display = 'block';
+    document.getElementById('admin-login').style.display = 'block';
+}
+
+
+// Check password and enable admin mode
+async function checkAdmin() {
+    const password = document.getElementById('admin-password').value;
+
+    const response = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+        isAdmin = true;
+        localStorage.setItem("isAdmin", "true");
+        updateAdminUI();
+        alert("✅ Admin mode enabled");
+        closeAdminLogin();
+    } else {
+        alert("❌ Incorrect password");
+    }
+}
+
+
+
+function showAdminTools() {
+    showPopup('admin-tools');
+}
+
+// Utility to close login menu
+function closeAdminLogin() {
+    document.getElementById("admin-login").style.display = "none";
+    document.getElementById("overlay").style.display = "none";
+}
+
+// Close admin tools panel
+function closeAdminTools() {
+    document.getElementById('overlay').style.display = 'none';
+    document.getElementById('admin-tools').style.display = 'none';
+}
+
+
+// Example: Edit current building (replace with actual logic)
+function editCurrentBuilding() {
+    if (!currentBuilding) return alert("No building selected.");
+    const newName = prompt("New name for " + currentBuilding.name + ":", currentBuilding.name);
+    if (newName) {
+        currentBuilding.name = newName;
+        alert("Updated! Refresh to see changes.");
+    }
+}
+
+
+document.addEventListener('keydown', function(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+        promptAdminLogin();
+    }
+});
+let addMode = false;
+function addBuilding() {
+    document.getElementById('admin-tools').style.display = 'none';
+
+}
+
+let pendingBuildingCoords = null;
+
+function addBuilding() {
+    closeAdminTools();
+    alert("Click on the map where you want to place the new building.");
+    addMode = true;
+    map.getContainer().style.cursor = 'crosshair';
+
+    map.once('click', function (e) {
+        addMode = false;
+        map.getContainer().style.cursor = '';
+
+        pendingBuildingCoords = {
+            x: e.latlng.lng,
+            y: 600 - e.latlng.lat
+        };
+
+        document.getElementById('new-building-name').value = "";
+        document.getElementById('new-building-image').value = "";
+        showPopup('building-upload-modal');
+    });
+}
+
+function confirmNewBuilding() {
+    const name = document.getElementById('new-building-name').value.trim();
+    const fileInput = document.getElementById('new-building-image');
+    const file = fileInput.files[0];
+
+    if (!name) {
+        alert("Please enter a building name.");
+        return;
+    }
+
+    // Store coords
+    const x = pendingBuildingCoords.x;
+    const y = pendingBuildingCoords.y;
+
+    const floors = []; // default for now
+
+    // Upload image first, then save building
+    if (file) {
+        uploadImageToServer(file)
+            .then(imagePath => {
+                saveBuildingToServer({
+                    name,
+                    image: imagePath,
+                    x,
+                    y,
+                    floors
+                });
+            })
+            .catch(err => {
+                alert("Image upload failed.");
+                console.error(err);
+            });
+    } else {
+        // No file: use placeholder
+        saveBuildingToServer({
+            name,
+            image: "images/Place_holder.png",
+            x,
+            y,
+            floors
+        });
+    }
+
+    closeMenu();
+}
+
+const widget = document.getElementById('weather-widget');
+
+widget.addEventListener('mousedown', function (e) {
+  // Allow only left-click drag
+  if (e.button !== 0) return;
+
+  e.preventDefault();
+
+  // Prevent conflicting CSS
+  widget.style.bottom = 'auto';
+
+  let shiftX = e.clientX - widget.getBoundingClientRect().left;
+  let shiftY = e.clientY - widget.getBoundingClientRect().top;
+
+  function moveAt(pageX, pageY) {
+    widget.style.left = pageX - shiftX + 'px';
+    widget.style.top = pageY - shiftY + 'px';
+  }
+
+  function onMouseMove(e) {
+    moveAt(e.pageX, e.pageY);
+  }
+
+  // 🧠 Attach listeners to the *document* so dragging continues outside the widget
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+
+  function onMouseUp() {
+    document.removeEventListener('mousemove', onMouseMove);
+    document.removeEventListener('mouseup', onMouseUp);
+  }
+});
+
+// Optional: prevent default drag image for the element
+widget.ondragstart = () => false;
+
+
+
+function openAddFloorModal(building) {
+    currentBuilding = building;
+    document.getElementById('new-floor-name').value = "";
+    document.getElementById('new-floor-image').value = "";
+    showPopup('add-floor-modal');
+}
+
+function confirmNewFloor() {
+    const name = document.getElementById('new-floor-name').value.trim();
+    const file = document.getElementById('new-floor-image').files[0];
+
+    if (!name) {
+        alert("Please enter a floor name.");
+        return;
+    }
+
+    if (file) {
+        uploadImageToServer(file).then(imagePath => {
+            finishAddFloor(name, imagePath);
+        }).catch(err => {
+            alert("Image upload failed.");
+            console.error(err);
+        });
+    } else {
+        finishAddFloor(name, "images/Place_holder.png");
+    }
+}
+
+function finishAddFloor(name, imagePath) {
+    const newFloor = {
+        name,
+        image: imagePath,
+        rooms: []
+    };
+
+    currentBuilding.floors.push(newFloor);
+    saveBuildingToServer(currentBuilding); // ✅ persist it
+    closeMenu();
+    alert(`Floor "${name}" added.`);
+    openBuildingMenu(currentBuilding); // refresh UI
+}
+
+
+function openAddRoomModal(floor) {
+    currentFloor = floor;
+    document.getElementById('new-room-name').value = "";
+    document.getElementById('new-room-image').value = "";
+    showPopup('add-room-modal');
+}
+
+
+function confirmNewRoom() {
+    const name = document.getElementById('new-room-name').value.trim();
+    const file = document.getElementById('new-room-image').files[0];
+
+    if (!name) {
+        alert("Please enter a room name.");
+        return;
+    }
+
+    if (file) {
+        uploadImageToServer(file).then(imagePath => {
+            finishAddRoom(name, imagePath);
+        }).catch(err => {
+            alert("Image upload failed.");
+            console.error(err);
+        });
+    } else {
+        finishAddRoom(name, "images/Place_holder.png");
+    }
+}
+
+
+function finishAddRoom(name, imagePath) {
+    const newRoom = {
+        name,
+        image: imagePath
+    };
+
+    currentFloor.rooms.push(newRoom);
+    saveBuildingToServer(currentBuilding); // ✅ persist it
+    closeMenu();
+    alert(`Room "${name}" added.`);
+    showFloorPlan(currentBuilding, currentFloor); // refresh UI
+}
+
+
+
+function skipRoomImage() {
+    document.getElementById('new-room-image').value = "";
+    confirmNewRoom();
+}
+function skipFloorImage() {
+    document.getElementById('new-floor-image').value = "";
+    confirmNewFloor();
+}
+function skipBuildingImage() {
+    document.getElementById('new-building-image').value = "";
+    confirmNewBuilding(); // uses placeholder
+}
+
+function cancelBuilding() {
+    pendingBuildingCoords = null;
+    closeMenu();
+}
+
+
+L.marker([correctedY, building.x])
+  .addTo(map)
+  .bindPopup(`<b>${building.name}</b>`)
+  .bindTooltip(building.name, { permanent: false, direction: "top" })
+  .on('click', () => {
+      if (repositioning) {
+          handleRepositionMarkerClick(building);
+      } else {
+          openBuildingMenu(building);
+      }
+  });
+
+
+function adminLogin() {
+    const code = document.getElementById("admin-password").value;
+
+    fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: code })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Incorrect password");
+        return res.json();
+    })
+    .then(() => {
+        isAdmin = true;
+        sessionStorage.setItem("isAdmin", "true");
+
+        // Show confirmation and close login prompt
+        alert("✅ Admin mode activated.");
+        closeAdminLogin(); // ← closes the login box
+        document.getElementById('floating-admin-button').style.display = 'block';
+    })
+    .catch(err => alert("❌ " + err.message));
+}
+
+
+function saveBuildingToServer(building) {
+    fetch('/api/save-building', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(building)
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+        console.log("Saved:", data.filename);
+        
+            loadScript(`/buildings/${data.filename}`)
+        .then(() => {
+            const latest = buildings[buildings.length - 1];
+            addBuildingMarker(latest);
+        });
+        
+    })
+    
+    .catch(err => {
+        alert("Failed to save building.");
+        console.error(err);
+    });
+    
+    
+    }
+    function toggleWifiTabs() {
+        const tabs = document.getElementById('wifi-tabs');
+        const isHidden = tabs.classList.contains('hidden');
+        if (isHidden) {
+            tabs.classList.remove('hidden');
+            document.addEventListener('click', outsideClickHandler);
+        } else {
+            tabs.classList.add('hidden');
+            document.removeEventListener('click', outsideClickHandler);
+        }
+    }
+    function outsideClickHandler(e) {
+        const tabs = document.getElementById('wifi-tabs');
+        const icon = document.getElementById('wifi-indicator');
+        if (!tabs.contains(e.target) && !icon.contains(e.target)) {
+            tabs.classList.add('hidden');
+            document.removeEventListener('click', outsideClickHandler);
+        }
+    }
+
+
+function showTab(tabName) {
+    // Deactivate all buttons
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
+
+    // Activate selected
+    document.querySelector(`[onclick="showTab('${tabName}')"]`).classList.add('active');
+    document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+}
+function renderBuildingMarker(building) {
+    const correctedY = 600 - building.y;
+    L.marker([correctedY, building.x])
+        .addTo(map)
+        .bindPopup(`<b>${building.name}</b>`)
+        .bindTooltip(building.name, { permanent: false, direction: "top" })
+        .on('click', () => {
+            if (repositioning) {
+                handleRepositionMarkerClick(building);
+            } else {
+                openBuildingMenu(building);
+            }
+        });
+
+}
+
+function uploadImageToServer(file) {
+    const formData = new FormData();
+    formData.append("image", file);
+
+    return fetch("/api/upload-image", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.imagePath) throw new Error("No image path returned");
+        return data.imagePath;
+    });
+}
+
+
+
+// Step 1: Initiate repositioning
+function startRepositioning() {
+    alert("Click on a building marker to reposition it.");
+    repositioning = true;
+    map.getContainer().style.cursor = 'crosshair';
+}
+
+// Step 2: Marker click will now enter map click mode
+function handleRepositionMarkerClick(building) {
+    if (!repositioning) return;
+
+    repositioning = false;
+    selectedBuilding = building;
+
+    alert(`Now click on the new location for "${building.name}".`);
+    map.getContainer().style.cursor = 'crosshair';
+
+    map.once('click', function (e) {
+        map.getContainer().style.cursor = '';
+
+        const newX = e.latlng.lng;
+        const newY = 600 - e.latlng.lat;
+
+        building.x = newX;
+        building.y = newY;
+
+        rebuildAllMarkers();
+        saveBuildingToServer(building);
+        alert(`✅ "${building.name}" has been repositioned.`);
+    });
+}
+
+
+function rebuildAllMarkers() {
+    map.eachLayer(layer => {
+        if (layer instanceof L.Marker) {
+            map.removeLayer(layer);
+        }
+    });
+
+    buildings.forEach(building => {
+        const correctedY = 600 - building.y;
+        L.marker([correctedY, building.x])
+            .addTo(map)
+            .bindPopup(`<b>${building.name}</b>`)
+            .bindTooltip(building.name, { permanent: false, direction: "top" })
+            .on('click', () => {
+                if (repositioning) {
+                    handleRepositionMarkerClick(building);
+                } else if (removing) {
+                    handleRemoveMarkerClick(building);
+                } else {
+                    openBuildingMenu(building);
+                }
+            });
+
+    });
+}
+
+function startRemovingBuilding() {
+    alert("Click a building marker to remove it.");
+    removing = true;
+    map.getContainer().style.cursor = 'crosshair';
+}
+
+function handleRemoveMarkerClick(building) {
+    if (!removing) return;
+
+    const confirmed = confirm(`Are you sure you want to delete "${building.name}"?`);
+    if (!confirmed) {
+        map.getContainer().style.cursor = '';
+        removing = false;
+        return;
+    }
+
+    // Remove from local list
+    const index = buildings.indexOf(building);
+    if (index !== -1) {
+        buildings.splice(index, 1);
+    }
+
+    // Re-render map
+    rebuildAllMarkers();
+    map.getContainer().style.cursor = '';
+    removing = false;
+
+    // Request file deletion on server
+    fetch(`/api/delete-building`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: building.name })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✅ "${building.name}" removed.`);
+        } else {
+            alert(`⚠️ Building removed from view, but file not deleted:\n${data.error}`);
+        }
+    })
+    .catch(err => {
+        console.error("Error deleting building file:", err);
+        alert("⚠️ Failed to delete file on server.");
+    });
+}
+
+
+
+function openEditRoomModal(room) {
+    console.log("📋 Opening Edit Modal for:", room);
+    editingRoom = room;
+    document.getElementById('edit-room-title').textContent = `Room: ${room.name}`;
+    document.getElementById('edit-room-wifi').value = (room.wifi || []).join(", ");
+    showPopup('edit-room-modal');
+}
+
+function deleteRoom(roomToDelete) {
+    if (!confirm(`Are you sure you want to delete the room "${roomToDelete.name}"?`)) return;
+
+    for (let floor of currentBuilding.floors) {
+        const index = floor.rooms.indexOf(roomToDelete);
+        if (index !== -1) {
+            floor.rooms.splice(index, 1);
+            break;
+        }
+    }
+
+    saveBuildings(); // <== Persist the changes
+    closeMenu();
+    openBuilding(currentBuilding);
+}
+
+
+function saveBuildings() {
+    if (!currentBuilding) return;
+
+    fetch('/api/save-building', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            name: currentBuilding.name,
+            image: currentBuilding.image,
+            x: currentBuilding.x,
+            y: currentBuilding.y,
+            floors: currentBuilding.floors
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            console.log("✅ Building saved:", data.filename);
+        } else {
+            console.error("❌ Failed to save building:", data);
+        }
+    })
+    .catch(err => {
+        console.error("❌ Error saving building:", err);
+    });
+}
+
+function saveRoomWifi() {
+    const wifiString = document.getElementById('edit-room-wifi').value;
+    const wifiArray = wifiString.split(',').map(w => w.trim()).filter(Boolean);
+
+    editingRoom.wifi = wifiArray;
+    console.log("💾 Saving Wi-Fi:", wifiArray, "for", editingRoom.name);
+
+    saveBuildingToServer(currentBuilding);
+    closeMenu();
+    showRoomDetails(editingRoom);
+}
+
+function editImage(targetObject, type) {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.style.display = "none";
+
+    input.onchange = () => {
+        const file = input.files[0];
+        if (!file) return;
+
+        uploadImageToServer(file).then(imagePath => {
+            targetObject.image = imagePath;
+            saveBuildingToServer(currentBuilding);
+
+            alert(`${type.charAt(0).toUpperCase() + type.slice(1)} image updated!`);
+
+            if (type === "building") {
+                openBuildingMenu(currentBuilding);
+            } else if (type === "floor") {
+                showFloorPlan(currentBuilding, currentFloor);
+            } else if (type === "room") {
+                showRoomDetails(currentRoom);
+            }
+        }).catch(err => {
+            alert("Image upload failed.");
+            console.error(err);
+        });
+    };
+
+    document.body.appendChild(input);
+    input.click();
+}
+
+function toggleDrawer() {
+  document.getElementById("drawer-links").classList.toggle("open");
+  document.getElementById("drawer-accessibility").classList.toggle("open");
+
+  const gear = document.getElementById("drawer-toggle");
+  gear.classList.remove("spinning"); // reset if already spinning
+  void gear.offsetWidth; // force reflow for re-triggering animation
+  gear.classList.add("spinning");
+}
+
+// Optional: Click outside to close
+document.addEventListener("click", (e) => {
+    const drawer = document.getElementById("corner-drawer");
+    if (!drawer.contains(e.target)) {
+        document.getElementById("drawer-panel").classList.remove("open");
+        document.getElementById("drawer-panel").classList.add("closed");
+    }
+});
+
+
+const panel = document.getElementById('accessibility-panel');
+const gear = document.getElementById('drawer-toggle');
+
+gear.addEventListener('click', () => {
+    panel.classList.toggle('visible');
+});
+
+// Close panel if clicking outside
+document.addEventListener('click', (e) => {
+    if (!panel.contains(e.target) && !gear.contains(e.target)) {
+        panel.classList.remove('visible');
+    }
+});
+
+document.getElementById("accessibility-toggle").addEventListener("click", function () {
+    const menu = document.getElementById("accessibility-menu");
+    menu.classList.toggle("hidden");
+});
+
+// Close when clicking outside
+document.addEventListener("click", function (e) {
+    const toggle = document.getElementById("accessibility-toggle");
+    const menu = document.getElementById("accessibility-menu");
+    if (!toggle.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add("hidden");
+    }
+});
+
+// Accessibility Features
+function toggleHighContrast() {
+    document.body.classList.toggle("high-contrast");
+}
+
+let currentFontSize = 100;
+function increaseFont() {
+    currentFontSize += 10;
+    document.body.style.fontSize = currentFontSize + "%";
+}
+function decreaseFont() {
+    currentFontSize = Math.max(60, currentFontSize - 10);
+    document.body.style.fontSize = currentFontSize + "%";
+}
+function resetFont() {
+    currentFontSize = 100;
+    document.body.style.fontSize = "100%";
+}
+
+
+    </script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  fetch('/api/weather')
+    .then(res => res.json())
+    .then(data => {
+      const tempEl = document.getElementById('cuaca-temp');
+      const descEl = document.getElementById('cuaca-desc');
+      const iconEl = document.getElementById('cuaca-icon');
+      const widget = document.getElementById('weather-widget');
+      const ambience = document.getElementById('weather-ambience');
+
+      tempEl.textContent = data.main.temp + '°C';
+      descEl.textContent = data.weather[0].description;
+      iconEl.src = `https://openweathermap.org/img/wn/${data.weather[0].icon}.png`;
+
+      const weatherId = data.weather[0].id;
+
+      // warna Background
+      // nilai per kategori lebih tinggi = lebih severe cuaca
+      if (weatherId >= 200 && weatherId < 300) {
+        widget.style.backgroundColor = 'rgba(0, 40, 68, 0.3)';
+        iconEl.style.backgroundColor = 'rgba(90, 190, 225, 0.4)';
+        //petir/badai
+      } else if (weatherId >= 300 && weatherId < 600) {
+        widget.style.backgroundColor = 'rgba(0, 100, 170, 0.6)';
+        iconEl.style.backgroundColor = 'rgba(0, 100, 180, 0.4)';
+        //hujan
+      } else if (weatherId >= 600 && weatherId < 700) {
+        widget.style.backgroundColor = 'rgba(240, 240, 240, 0.6)';
+        iconEl.style.backgroundColor = 'rgba(200, 200, 240, 0.3)';
+        //bersalju
+      } else if (weatherId >= 700 && weatherId < 800) {
+        widget.style.backgroundColor = 'rgba(255, 0, 0, 0.6)';
+        iconEl.style.backgroundColor = 'rgba(220, 0, 0, 0.3)';
+        //700,710,720,... = kabut, asap, kabut, pasir, debu, abu vulkanik, badai hembus, tornado
+      } else if (weatherId === 800) {
+        widget.style.backgroundColor = 'rgba(255, 223, 100, 0.3)';
+        iconEl.style.backgroundColor = 'rgba(255, 240, 150, 0.4)';
+        //cerah
+      } else if (weatherId > 800) {
+        widget.style.backgroundColor = 'rgba(110, 125, 200, 0.8)';
+        iconEl.style.backgroundColor = 'rgba(110, 170, 200, 0.8)';
+        //awan
+      }
+
+      // Cloud Ambience
+      ambience.innerHTML = '';
+
+      if (weatherId >= 800 && weatherId <= 804) {
+        spawnClouds(8, 'rgba(180,180,180,0.3)');
+      } else if (weatherId >= 300 && weatherId < 600) {
+        spawnClouds(10, 'rgba(120,120,120,0.5)');
+      } else if (weatherId === 800) {
+        spawnClouds(3, 'rgba(255,255,255,0.2)');
+      }
+
+      function spawnClouds(count = 5, color = 'rgba(255,255,255,0.8)') {
+        for (let i = 0; i < count; i++) {
+          const cloud = document.createElement('div');
+          cloud.classList.add('weather-cloud');
+
+          const width = Math.random() * 150 + 150;
+          const height = width / 2;
+          const top = Math.random() * 60;
+          const speed = Math.random() * 30 + 40;
+          const delay = Math.random() * 5;
+          const id = `cloud-keyframe-${i}`;
+
+          cloud.style.width = `${width}px`;
+          cloud.style.height = `${height}px`;
+          cloud.style.top = `${top}%`;
+          cloud.style.left = `-${width}px`;
+          cloud.style.background = color;
+          cloud.style.animation = `${id} ${speed}s linear infinite`;
+          cloud.style.animationDelay = `${delay}s`;
+
+          const style = document.createElement('style');
+          style.textContent = `
+            @keyframes ${id} {
+              0% { left: -${width}px; }
+              100% { left: 110vw; }
+            }
+          `;
+          document.head.appendChild(style);
+          ambience.appendChild(cloud);
+        }
+      }
+    })
+    .catch(err => {
+      console.error("Weather error:", err);
+    });
+});
+</script>
+
+
+</body>
+<footer>
+</footer>
+</html>
