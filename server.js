@@ -1,4 +1,6 @@
 require('dotenv').config();
+console.log("🔑 Loaded OpenWeather API Key:", process.env.OPENWEATHERMAP_API_KEY);
+
 const fetch = require('node-fetch');
 const express = require('express');
 const fs = require('fs');
@@ -144,7 +146,7 @@ app.post('/api/delete-building', (req, res) => {
 let cachedWeather = null;
 let lastFetched = 0;
 const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
-const WEATHER_API_KEY = 'ff7dc8c10056b71c93e3748c51481152';
+const WEATHER_API_KEY = process.env.OPENWEATHERMAP_API_KEY;
 //const LAT = -3.8079;
 //const LON = 114.7921;//Lokasi
 
@@ -154,7 +156,7 @@ app.get('/api/weather', async (req, res) => {
 
             if (!cachedWeather || now - lastFetched > CACHE_DURATION) {
         try {
-        const url = `https://api.openweathermap.org/data/2.5/weather?lat=-3.8011&lon=114.8083&appid=${WEATHER_API_KEY}&units=metric&lang=id`;
+        const url = `https://api.openweathermap.org/data/2.5/weather?lat=-3.8011&lon=114.8083&appid=${OPENWEATHERMAP_API_KEY}&units=metric&lang=id`;
         const response = await fetch(url);
 
         if (!response.ok) {
